@@ -1,156 +1,177 @@
 import React, { useEffect, useState } from 'react';
 import TaskRow from './TaskRow';
+import { Plus, Save, LoaderCircle } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 
 const TaskPanel = () => {
     const [tasks, setTasks] = useState([]);
     const [isDisabled, setIsDisabled] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSave = () => {
-        alert("Saved");
-        console.log("Saved", tasks);
+        setIsLoading(true);
+        setTimeout(() => {
+            toast.success('Tasks saved successfully!');
+            console.log('Saved tasks --', tasks);
+            setIsLoading(false);
+        }, 500);
     };
 
     const updateTask = (index, field, value) => {
         if (field === 'weight') return;
-        
-        setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks];
-            updatedTasks[index] = {
-                ...updatedTasks[index],
-                [field]: value
-            };
-            return updatedTasks;
+
+        setTasks(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
         });
     };
 
-    const updateSubTask = (parentTaskIndex, subIndex, field, value) => {
-        setTasks(prevTasks => {
-            const newTasks = [...prevTasks];
-            const parentTask = newTasks[parentTaskIndex];
-            
-            const updatedSubs = parentTask.subs.map((sub, i) =>
+    const updateSubTask = (parentIndex, subIndex, field, value) => {
+        setTasks(prev => {
+            const updated = [...prev];
+            const parent = updated[parentIndex];
+
+            const newSubs = parent.subs.map((sub, i) =>
                 i === subIndex ? { ...sub, [field]: value } : sub
             );
-            
-            const newParentWeight = updatedSubs.reduce((sum, sub) => sum + Number(sub.weight || 0), 0);
-            
-            newTasks[parentTaskIndex] = {
-                ...parentTask,
-                subs: updatedSubs,
-                weight: newParentWeight
+
+            const newWeight = newSubs.reduce((sum, sub) => sum + Number(sub.weight || 0), 0);
+
+            updated[parentIndex] = {
+                ...parent,
+                subs: newSubs,
+                weight: newWeight
             };
-            
-            return newTasks;
+
+            return updated;
         });
     };
 
     const addTask = () => {
+        const last = tasks[tasks.length - 1];
+        if (last && (!last.name || last.name.trim() === '')) {
+            toast.error('Please enter a name for the previous task before adding a new one.');
+            return;
+        }
+
         setTasks([...tasks, { name: '', unit: '', weight: 0, subs: [] }]);
+        toast.success('New task added.');
     };
 
-    const addSubTask = (parentTaskIndex) => {
-        setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks];
-            updatedTasks[parentTaskIndex] = {
-                ...updatedTasks[parentTaskIndex],
-                subs: [...updatedTasks[parentTaskIndex].subs, { name: '', unit: '', weight: 0 }]
+    const addSubTask = (parentIndex) => {
+        setTasks(prev => {
+            const updated = [...prev];
+            const parent = updated[parentIndex];
+
+            updated[parentIndex] = {
+                ...parent,
+                subs: [...parent.subs, { name: '', unit: '', weight: 0 }]
             };
-            return updatedTasks;
+
+            return updated;
         });
     };
 
     const deleteTask = (index) => {
         setTasks(tasks.filter((_, i) => i !== index));
+        toast.success('Task deleted.');
     };
 
-    const deleteSubTask = (parentTaskIndex, subIndex) => {
-        setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks];
-            const parentTask = updatedTasks[parentTaskIndex];
-            
-            // Filter out the subtask to be deleted
-            const newSubs = parentTask.subs.filter((_, i) => i !== subIndex);
-            
-            // Calculate new parent weight
-            const newParentWeight = newSubs.reduce((sum, sub) => sum + Number(sub.weight || 0), 0);
-            
-            updatedTasks[parentTaskIndex] = {
-                ...parentTask,
+    const deleteSubTask = (parentIndex, subIndex) => {
+        setTasks(prev => {
+            const updated = [...prev];
+            const parent = updated[parentIndex];
+
+            const newSubs = parent.subs.filter((_, i) => i !== subIndex);
+            const newWeight = newSubs.reduce((sum, sub) => sum + Number(sub.weight || 0), 0);
+
+            updated[parentIndex] = {
+                ...parent,
                 subs: newSubs,
-                weight: newParentWeight
+                weight: newWeight
             };
-            
-            return updatedTasks;
+
+            return updated;
         });
+        toast.success('Sub-task deleted.');
     };
 
-    const totalWeight = tasks.reduce((sum, task) =>
-        sum + Number(task.weight || 0), 0);
+    const totalWeight = tasks.reduce((sum, task) => sum + Number(task.weight || 0), 0);
 
     useEffect(() => {
         setIsDisabled(totalWeight !== 100);
     }, [totalWeight]);
 
     return (
-        <div className='flex flex-col p-3 text-black'>
-            <div className='flex items-center justify-between font-semibold p-2 border-b border-b-gray-200 bg-violet-800 rounded-md text-white'>
-                <h1 className='text-xl'>Task Panel</h1>
-                <div className='flex items-center justify-between space-x-3'>
-                    <div className='font-semibold w-46'>
-                        Total Completion: <span className='p-1 bg-black text-white rounded'>{totalWeight}%</span>
-                    </div>
+        <div className='p-4 text-black space-y-4'>
+            <Toaster position="top-center" richColors />
+
+            <div className='flex flex-col md:flex-row md:items-center md:justify-between p-4 rounded-md bg-violet-800 text-white'>
+                <h1 className='text-xl font-bold mb-2 md:mb-0'>Task Panel</h1>
+                <div className='flex flex-wrap items-center gap-3'>
+                    <span className='bg-black text-white px-4 py-2 rounded text-sm'>
+                        Total Completion: {totalWeight}%
+                    </span>
 
                     <button
                         onClick={addTask}
-                        className='bg-violet-50 text-black p-3 rounded-lg cursor-pointer hover:bg-violet-200 transition'
+                        className='flex items-center gap-2 bg-white text-black px-4 py-2 rounded hover:bg-violet-200 transition cursor-pointer'
                     >
-                        + Add Task
+                        <Plus size={18} /> Add Task
                     </button>
 
                     <button
-                        disabled={isDisabled}
+                        disabled={isDisabled || isLoading}
                         onClick={handleSave}
-                        className={`text-white p-3 rounded-lg cursor-pointer transition ${
-                            isDisabled ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-500'
+                        className={`flex items-center gap-2 px-4 py-2 rounded transition ${
+                            isDisabled ? 'bg-gray-400 text-white' :
+                            'bg-red-600 hover:bg-red-500 text-white cursor-pointer'
                         }`}
                     >
-                        Save
+                        {isLoading ? <LoaderCircle className="animate-spin" size={18} /> : <Save size={18} />}
+                        {isLoading ? 'Saving...' : 'Save'}
                     </button>
                 </div>
             </div>
 
-            {tasks.map((task, index) => (
-                <div key={index} className="mb-4 border-b border-b-gray-200">
-                    <TaskRow
-                        item={task}
-                        onChange={(field, value) => updateTask(index, field, value)}
-                        onDelete={() => deleteTask(index)}
-                        isSubActivity={false}
-                        isWeightEditable={false}
-                    />
+            {tasks.length === 0 && (
+    <div className="flex items-center justify-center flex-col text-gray-500 mt-10">
+        <Plus size={40} className="mb-2" />
+        <p className="text-lg">No tasks added yet</p>
+    </div>
+)}
 
-                    <div className="ml-8">
-                        {task.subs.map((sub, j) => (
-                            <TaskRow
-                                key={j}
-                                item={sub}
-                                onChange={(field, value) => updateSubTask(index, j, field, value)}
-                                onDelete={() => deleteSubTask(index, j)}
-                                isSubActivity={true}
-                                isWeightEditable={true}
-                            />
-                        ))}
+{tasks.map((task, index) => (
+    <div key={index} className="mb-4 border-b pb-4">
+        <TaskRow
+            item={task}
+            onChange={(field, value) => updateTask(index, field, value)}
+            onDelete={() => deleteTask(index)}
+            isWeightEditable={false}
+        />
 
-                        <button
-                            onClick={() => addSubTask(index)}
-                            className='text-blue-600 hover:text-blue-800 mt-2'
-                        >
-                            + Add Sub-Task
-                        </button>
-                    </div>
-
-                </div>
+        <div className="ml-6 mt-2">
+            {task.subs.map((sub, j) => (
+                <TaskRow
+                    key={j}
+                    item={sub}
+                    onChange={(field, value) => updateSubTask(index, j, field, value)}
+                    onDelete={() => deleteSubTask(index, j)}
+                    isWeightEditable={true}
+                />
             ))}
+
+            <button
+                onClick={() => addSubTask(index)}
+                className='text-blue-600 hover:bg-gray-100 p-2 rounded-md mt-2 text-sm cursor-pointer'
+            >
+                + Add Sub-Task
+            </button>
+        </div>
+    </div>
+))}
+
         </div>
     );
 };
