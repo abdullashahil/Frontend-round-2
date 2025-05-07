@@ -6,7 +6,7 @@
 
 ## 🔗 Deployed Link
 
-[Visit Taskified](taskified-frontend.netlify.app)
+[Visit Taskified](https://taskified-frontend.netlify.app/)
 
 ---
 
