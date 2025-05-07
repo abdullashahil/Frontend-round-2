@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TaskRow from './TaskRow';
 import { Plus, Save, LoaderCircle } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import {Toaster, toast} from 'sonner';
 
 const TaskPanel = () => {
     const [tasks, setTasks] = useState([]);
@@ -14,6 +14,7 @@ const TaskPanel = () => {
             toast.success('Tasks saved successfully!');
             console.log('Saved tasks --', tasks);
             setIsLoading(false);
+
         }, 500);
     };
 
@@ -37,7 +38,6 @@ const TaskPanel = () => {
             );
 
             const newWeight = newSubs.reduce((sum, sub) => sum + Number(sub.weight || 0), 0);
-
             updated[parentIndex] = {
                 ...parent,
                 subs: newSubs,
